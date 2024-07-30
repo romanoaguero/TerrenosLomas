@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+
+         <!-- Se agrega titulo e favicon -->
+         <link rel="shortcut icon" href="images/favicon.png">
+         <title>Visualizador - GSMT - IPVDU </title>
+
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/ParcelarioLomasActualizado_2.js"></script>
+        <script src="data/TerrenosUecel_3.js"></script>
+        <script src="data/ReservaIPVYDUUecel_4.js"></script>
+        <script src="data/FueradeUecel_5.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-26.779496206890336,-65.24093381221999],[-26.77282971162932,-65.22937855376756]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a> <strong> © IPVDU  - AREA: Planeamiento - DEPARTAMENTO: Desarrollo Urbano </strong></a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_OpenStreetMap_0;
+        map.addLayer(layer_OpenStreetMap_0);
+        map.createPane('pane_GoogleEarthSatelite_1');
+        map.getPane('pane_GoogleEarthSatelite_1').style.zIndex = 401;
+        var layer_GoogleEarthSatelite_1 = L.tileLayer('http://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleEarthSatelite_1',
+            opacity: 0.4,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_GoogleEarthSatelite_1;
+        map.addLayer(layer_GoogleEarthSatelite_1);
+        function pop_ParcelarioLomasActualizado_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">PADRON</th>\
+                        <td class="visible-with-data" id="PADRON">' + (feature.properties['PADRON'] !== null ? autolinker.link(feature.properties['PADRON'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SECTOR</th>\
+                        <td class="visible-with-data" id="SECTOR">' + (feature.properties['SECTOR'] !== null ? autolinker.link(feature.properties['SECTOR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MANZANA</th>\
+                        <td class="visible-with-data" id="MANZANA">' + (feature.properties['MANZANA'] !== null ? autolinker.link(feature.properties['MANZANA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LOTE</th>\
+                        <td class="visible-with-data" id="LOTE">' + (feature.properties['LOTE'] !== null ? autolinker.link(feature.properties['LOTE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">UNIDAD</th>\
+                        <td class="visible-with-data" id="UNIDAD">' + (feature.properties['UNIDAD'] !== null ? autolinker.link(feature.properties['UNIDAD'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">RELEV PH</th>\
+                        <td class="visible-with-data" id="RELEV PH">' + (feature.properties['RELEV PH'] !== null ? autolinker.link(feature.properties['RELEV PH'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ParcelarioLomasActualizado_2_0() {
+            return {
+                pane: 'pane_ParcelarioLomasActualizado_2',
+                opacity: 1,
+                color: 'rgba(186,186,186,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(186,186,186,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ParcelarioLomasActualizado_2');
+        map.getPane('pane_ParcelarioLomasActualizado_2').style.zIndex = 402;
+        map.getPane('pane_ParcelarioLomasActualizado_2').style['mix-blend-mode'] = 'normal';
+        var layer_ParcelarioLomasActualizado_2 = new L.geoJson(json_ParcelarioLomasActualizado_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ParcelarioLomasActualizado_2',
+            layerName: 'layer_ParcelarioLomasActualizado_2',
+            pane: 'pane_ParcelarioLomasActualizado_2',
+            onEachFeature: pop_ParcelarioLomasActualizado_2,
+            style: style_ParcelarioLomasActualizado_2_0,
+        });
+        bounds_group.addLayer(layer_ParcelarioLomasActualizado_2);
+        map.addLayer(layer_ParcelarioLomasActualizado_2);
+        function pop_TerrenosUecel_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">PADRON</th>\
+                        <td class="visible-with-data" id="PADRON">' + (feature.properties['PADRON'] !== null ? autolinker.link(feature.properties['PADRON'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SECTOR</th>\
+                        <td class="visible-with-data" id="SECTOR">' + (feature.properties['SECTOR'] !== null ? autolinker.link(feature.properties['SECTOR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MANZANA</th>\
+                        <td class="visible-with-data" id="MANZANA">' + (feature.properties['MANZANA'] !== null ? autolinker.link(feature.properties['MANZANA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LOTE</th>\
+                        <td class="visible-with-data" id="LOTE">' + (feature.properties['LOTE'] !== null ? autolinker.link(feature.properties['LOTE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ORDEN</th>\
+                        <td class="visible-with-data" id="ORDEN">' + (feature.properties['ORDEN'] !== null ? autolinker.link(feature.properties['ORDEN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">PROP</th>\
+                        <td class="visible-with-data" id="PROP">' + (feature.properties['PROP'] !== null ? autolinker.link(feature.properties['PROP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">USO_SUELO</th>\
+                        <td class="visible-with-data" id="USO_SUELO">' + (feature.properties['USO_SUELO'] !== null ? autolinker.link(feature.properties['USO_SUELO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_TerrenosUecel_3_0() {
+            return {
+                pane: 'pane_TerrenosUecel_3',
+                opacity: 1,
+                color: 'rgba(31,120,180,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(81,167,225,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_TerrenosUecel_3');
+        map.getPane('pane_TerrenosUecel_3').style.zIndex = 403;
+        map.getPane('pane_TerrenosUecel_3').style['mix-blend-mode'] = 'normal';
+        var layer_TerrenosUecel_3 = new L.geoJson(json_TerrenosUecel_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_TerrenosUecel_3',
+            layerName: 'layer_TerrenosUecel_3',
+            pane: 'pane_TerrenosUecel_3',
+            onEachFeature: pop_TerrenosUecel_3,
+            style: style_TerrenosUecel_3_0,
+        });
+        bounds_group.addLayer(layer_TerrenosUecel_3);
+        map.addLayer(layer_TerrenosUecel_3);
+        function pop_ReservaIPVYDUUecel_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">PADRON</th>\
+                        <td class="visible-with-data" id="PADRON">' + (feature.properties['PADRON'] !== null ? autolinker.link(feature.properties['PADRON'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SECTOR</th>\
+                        <td class="visible-with-data" id="SECTOR">' + (feature.properties['SECTOR'] !== null ? autolinker.link(feature.properties['SECTOR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MANZANA</th>\
+                        <td class="visible-with-data" id="MANZANA">' + (feature.properties['MANZANA'] !== null ? autolinker.link(feature.properties['MANZANA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LOTE</th>\
+                        <td class="visible-with-data" id="LOTE">' + (feature.properties['LOTE'] !== null ? autolinker.link(feature.properties['LOTE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ORDEN</th>\
+                        <td class="visible-with-data" id="ORDEN">' + (feature.properties['ORDEN'] !== null ? autolinker.link(feature.properties['ORDEN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">PROP</th>\
+                        <td class="visible-with-data" id="PROP">' + (feature.properties['PROP'] !== null ? autolinker.link(feature.properties['PROP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">USO_SUELO</th>\
+                        <td class="visible-with-data" id="USO_SUELO">' + (feature.properties['USO_SUELO'] !== null ? autolinker.link(feature.properties['USO_SUELO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ReservaIPVYDUUecel_4_0() {
+            return {
+                pane: 'pane_ReservaIPVYDUUecel_4',
+                opacity: 1,
+                color: 'rgba(178,167,8,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(223,211,80,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ReservaIPVYDUUecel_4');
+        map.getPane('pane_ReservaIPVYDUUecel_4').style.zIndex = 404;
+        map.getPane('pane_ReservaIPVYDUUecel_4').style['mix-blend-mode'] = 'normal';
+        var layer_ReservaIPVYDUUecel_4 = new L.geoJson(json_ReservaIPVYDUUecel_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ReservaIPVYDUUecel_4',
+            layerName: 'layer_ReservaIPVYDUUecel_4',
+            pane: 'pane_ReservaIPVYDUUecel_4',
+            onEachFeature: pop_ReservaIPVYDUUecel_4,
+            style: style_ReservaIPVYDUUecel_4_0,
+        });
+        bounds_group.addLayer(layer_ReservaIPVYDUUecel_4);
+        map.addLayer(layer_ReservaIPVYDUUecel_4);
+        function pop_FueradeUecel_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">PADRON</th>\
+                        <td>' + (feature.properties['PADRON'] !== null ? autolinker.link(feature.properties['PADRON'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SECTOR</th>\
+                        <td>' + (feature.properties['SECTOR'] !== null ? autolinker.link(feature.properties['SECTOR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MANZANA</th>\
+                        <td>' + (feature.properties['MANZANA'] !== null ? autolinker.link(feature.properties['MANZANA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LOTE</th>\
+                        <td>' + (feature.properties['LOTE'] !== null ? autolinker.link(feature.properties['LOTE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ORDEN</th>\
+                        <td>' + (feature.properties['ORDEN'] !== null ? autolinker.link(feature.properties['ORDEN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">PROP</th>\
+                        <td>' + (feature.properties['PROP'] !== null ? autolinker.link(feature.properties['PROP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">USO_SUELO</th>\
+                        <td>' + (feature.properties['USO_SUELO'] !== null ? autolinker.link(feature.properties['USO_SUELO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_FueradeUecel_5_0() {
+            return {
+                pane: 'pane_FueradeUecel_5',
+                opacity: 1,
+                color: 'rgba(254,124,54,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,161,111,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_FueradeUecel_5');
+        map.getPane('pane_FueradeUecel_5').style.zIndex = 405;
+        map.getPane('pane_FueradeUecel_5').style['mix-blend-mode'] = 'normal';
+        var layer_FueradeUecel_5 = new L.geoJson(json_FueradeUecel_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_FueradeUecel_5',
+            layerName: 'layer_FueradeUecel_5',
+            pane: 'pane_FueradeUecel_5',
+            onEachFeature: pop_FueradeUecel_5,
+            style: style_FueradeUecel_5_0,
+        });
+        bounds_group.addLayer(layer_FueradeUecel_5);
+        map.addLayer(layer_FueradeUecel_5);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = [ 
+        {label: "OpenStreetMap", layer: layer_OpenStreetMap_0}, 
+        {label: "Google Earth Satelite", layer: layer_GoogleEarthSatelite_1},] ;
+        var overlaysTree = [
+            {label: '<img src="legend/FueradeUecel_5.png" /> Fuera de Uecel', layer: layer_FueradeUecel_5},
+            {label: '<img src="legend/ReservaIPVYDUUecel_4.png" /> Reserva IPVYDU Uecel', layer: layer_ReservaIPVYDUUecel_4},
+            {label: '<img src="legend/TerrenosUecel_3.png" /> Terrenos Uecel', layer: layer_TerrenosUecel_3},
+            {label: '<img src="legend/ParcelarioLomasActualizado_2.png" /> Parcelario Lomas Actualizado', layer: layer_ParcelarioLomasActualizado_2},
+            ]
+        var lay = L.control.layers.tree(baseMaps, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_ParcelarioLomasActualizado_2,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'PADRON'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        resetLabels([layer_TerrenosUecel_3,layer_ReservaIPVYDUUecel_4]);
+        map.on("zoomend", function(){
+            resetLabels([layer_TerrenosUecel_3,layer_ReservaIPVYDUUecel_4]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_TerrenosUecel_3,layer_ReservaIPVYDUUecel_4]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_TerrenosUecel_3,layer_ReservaIPVYDUUecel_4]);
+        });
+
+
+        L.Control.Watermark = L.Control.extend({
+    onAdd: function(map) {
+        var img = L.DomUtil.create('img');
+
+        img.src = 'images/ipv-tuc-logo-blanco.png';
+        img.style.width = '200px';
+
+        return img;
+    },
+
+    onRemove: function(map) {
+        // Nothing to do here
+    }
+    });
+
+    L.control.watermark = function(opts) {
+    return new L.Control.Watermark(opts);
+    }
+    L.control.watermark({ position: 'bottomleft' }).addTo(map)
+    // fin codigo 
+
+        </script>
+    </body>
+</html>
